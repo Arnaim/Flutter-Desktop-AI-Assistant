@@ -1,17 +1,39 @@
-# desktop_assistant
+# Project Overview: herta_assistant_bot
 
-A new Flutter project.
+`herta_assistant_bot` is a Flutter-based desktop assistant themed after **Madam Herta** (*Honkai: Star Rail*). The assistant features a "Genius" persona and acts as a functional system-level utility for Windows.
 
-## Getting Started
+## Core Features
+- **AI Persona**: Enforces a Madam Herta persona (elegant, dry, slightly arrogant) via system prompt.
+- **Backend**: Uses Google Gemini API (`gemini-2.0-flash`) for efficient and reliable inference.
+- **Desktop Integration**:
+    - **Window Management**: Borderless design with custom drag-to-move controls.
+    - **Global Hotkeys**: `Alt+Space` to summon/hide the assistant from anywhere in the OS.
+    - **System Automation**: Capable of launching system apps (Notepad, Task Manager), opening URLs, and performing web searches (YouTube, Google, GitHub) based on natural language commands.
+- **Robustness**: Includes automatic model fallback and request rate-limiting to manage API quotas.
 
-This project is a starting point for a Flutter application.
+## Tech Stack
+- **Framework**: [Flutter](https://flutter.dev/)
+- **State Management**: [Provider](https://pub.dev/packages/provider)
+- **AI Backend**: `google_generative_ai` (Gemini API)
+- **Desktop Utilities**: `window_manager`, `hotkey_manager`, `url_launcher`, `process_run`
 
-A few resources to get you started if this is your first Flutter project:
+## Architecture
+- `lib/core/`:
+    - `ai/`: Persona system prompt.
+    - `models/`: Data structures.
+    - `services/`: Core logic (`GeminiService`, `CommandExecutor`, `HistoryService`).
+- `lib/features/chat/`:
+    - `provider/`: `ChatProvider` for state management and rate-limiting.
+    - `ui/`: Main chat interface.
+- `lib/shared/widgets/`: Modular, decoupled UI components.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Setup
+1. **API Key**: Ensure you have a valid Google Gemini API Key. (Recommend storing in a `.env` file).
+2. **Commands**:
+    - **Run Application**: `flutter run -d windows`.
+    - **Dependencies**: `flutter pub get`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-"# Flutter-Desktop-AI-Assistant" 
+## Development Conventions
+- **Persona**: Maintain a balance between efficiency (Work Mode) and Herta's character (Banter Mode).
+- **State Management**: Use `Provider` for all reactive UI updates.
+- **Security**: Never commit API keys to version control.
