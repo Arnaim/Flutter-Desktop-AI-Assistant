@@ -4,7 +4,7 @@ import 'package:herta_assistant_bot/core/models/messages.dart' as models;
 import 'package:flutter/foundation.dart';
 
 class GeminiService {
-  static const String apiKey = 'AIzaSyDAMfCajOx98GCaqegH5I6ty1Zsc0FYl4o'; 
+  static const String apiKey = 'your-api-key'; 
 
   // List of models to try in order of preference
   final List<String> _models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.1-flash-lite-preview'];
