@@ -1,10 +1,10 @@
-# Project Overview: herta_assistant_bot
+# Project Overview: assistant_bot
 
-`herta_assistant_bot` is a Flutter-based desktop assistant themed after **Madam Herta** (*Honkai: Star Rail*). The assistant features a "Genius" persona and acts as a functional system-level utility for Windows.
+`herta_assistant_bot` is a Flutter-based desktop assistant themed after **Madam Herta** (*Honkai: Star Rail*). The assistant features a "Genius" persona and acts as a functional system-level utility for Windows. But the persona can be updated based on your choice or even no persona at all.
 
 ## Core Features
 - **AI Persona**: Enforces a Madam Herta persona (elegant, dry, slightly arrogant) via system prompt.
-- **Backend**: Uses Google Gemini API (`gemini-2.0-flash`) for efficient and reliable inference.
+- **Backend**: Uses Google Gemini API ('gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.1-flash-lite-preview') for efficient and reliable inference. It switches models automatically if quota runs out. 
 - **Desktop Integration**:
     - **Window Management**: Borderless design with custom drag-to-move controls.
     - **Global Hotkeys**: `Alt+Space` to summon/hide the assistant from anywhere in the OS.
