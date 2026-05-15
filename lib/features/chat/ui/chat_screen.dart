@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -18,6 +20,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController controller = TextEditingController();
+  final ScrollController scrollController = ScrollController();
   final FocusNode inputFocusNode = FocusNode();
 
   @override
@@ -33,6 +36,16 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       return KeyEventResult.ignored;
     };
+  }
+
+  void _scrollToBottom() {
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _initHotkeys() async {
@@ -57,21 +70,29 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     controller.dispose();
+    scrollController.dispose();
     inputFocusNode.dispose();
     super.dispose();
   }
 
   void sendMessage(ChatProvider chat) {
     final text = controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && chat.pickedFilePath == null) return;
+    
+    final String? filePath = chat.pickedFilePath;
+    chat.clearPickedFile(); // Clear preview immediately
     controller.clear();
-    chat.addUserMessage(text);
+    
+    chat.addUserMessage(text.isEmpty ? "Analyze this file." : text, filePath: filePath);
     chat.sendToAI();
   }
 
   @override
   Widget build(BuildContext context) {
     final chat = context.watch<ChatProvider>();
+
+    // Scroll to bottom after frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     return Scaffold(
       body: Column(
@@ -86,6 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       Expanded(
                         child: ListView.builder(
+                          controller: scrollController,
                           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                           itemCount: chat.messages.length,
                           itemBuilder: (context, index) {
@@ -94,6 +116,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                         ),
                       ),
+                      if (chat.pickedFilePath != null) _buildFilePreview(chat),
                       _buildInputArea(chat),
                     ],
                   ),
@@ -102,6 +125,40 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilePreview(ChatProvider chat) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.attach_file, size: 16, color: AppTheme.primary),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                p.basename(chat.pickedFilePath!),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: chat.clearPickedFile,
+              child: const Icon(Icons.close, size: 16, color: AppTheme.error),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -125,15 +182,19 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         child: Row(
           children: [
+            IconButton(
+              icon: const Icon(Icons.attach_file_rounded, color: AppTheme.secondary),
+              onPressed: chat.pickFile,
+            ),
             Expanded(
               child: TextField(
                 controller: controller,
                 focusNode: inputFocusNode,
                 maxLines: 4,
                 minLines: 1,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                 decoration: const InputDecoration(
-                  hintText: "Ask something worthy of a genius...",
+                  hintText: "How can Ineffa assist you today, Arnab?",
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,

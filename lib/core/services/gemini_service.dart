@@ -1,30 +1,85 @@
+import 'dart:io';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:herta_assistant_bot/core/ai/system_prompt.dart';
-import 'package:herta_assistant_bot/core/models/messages.dart' as models;
+import 'package:ineffa_assistant_bot/core/ai/system_prompt.dart';
+import 'package:ineffa_assistant_bot/core/models/messages.dart' as models;
+import 'package:ineffa_assistant_bot/core/services/settings_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 class GeminiService {
-  static const String apiKey = 'your-api-key-here'; // Replace with your actual API key
+  final SettingsService _settings = SettingsService();
 
   // List of models to try in order of preference
-  final List<String> _models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.1-flash-lite-preview'];
+  final List<String> _models = ['gemini-1.5-flash', 'gemini-2.5-flash'];
   int _currentModelIndex = 0;
 
-  GenerativeModel _createModel() {
+  Future<GenerativeModel> _createModel() async {
+    final apiKey = await _settings.getGeminiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception("API Key missing, Arnab. Please add it in settings.");
+    }
+    
+    // Gather environmental context
+    final String homeDir = Platform.environment['USERPROFILE'] ?? 'C:\\Users\\naimu';
+    final String userName = p.basename(homeDir); // Extracts 'naimu' from 'C:\Users\naimu'
+    final String os = Platform.operatingSystem;
+    
+    final envContext = """
+ENVIRONMENTAL CONTEXT:
+- Operating System: $os
+- Current User Folder: $userName
+- Home Directory Path: $homeDir
+- Common Paths: 
+  - Documents: $homeDir\\Documents
+  - Desktop: $homeDir\\Desktop
+  - Downloads: $homeDir\\Downloads
+""";
+
     return GenerativeModel(
       model: _models[_currentModelIndex],
       apiKey: apiKey,
-      systemInstruction: Content.system(systemPrompt),
+      systemInstruction: Content('system', [TextPart(systemPrompt + "\n\n" + envContext)]),
     );
   }
 
+  String _getMimeType(String filePath) {
+    final ext = p.extension(filePath).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.webp':
+        return 'image/webp';
+      case '.pdf':
+        return 'application/pdf';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
   Stream<String> sendMessageStream(List<models.Message> messages) async* {
+    if (_currentModelIndex >= _models.length) _currentModelIndex = 0;
+    
     final lastMessage = messages.last;
 
     try {
-      final model = _createModel();
+      final model = await _createModel();
       final chat = model.startChat(history: []);
-      final responseStream = chat.sendMessageStream(Content.text(lastMessage.content));
+      
+      final List<Part> parts = [Content.text(lastMessage.content).parts.first];
+      
+      if (lastMessage.filePath != null) {
+        final file = File(lastMessage.filePath!);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          final mimeType = _getMimeType(lastMessage.filePath!);
+          parts.add(DataPart(mimeType, bytes));
+        }
+      }
+
+      final responseStream = chat.sendMessageStream(Content.multi(parts));
 
       await for (final chunk in responseStream) {
         if (chunk.text != null) {
@@ -32,17 +87,24 @@ class GeminiService {
         }
       }
     } catch (e) {
-      debugPrint("Error with model ${_models[_currentModelIndex]}: $e");
+      final errorMsg = e.toString();
+      debugPrint("Ineffa Error (${_models[_currentModelIndex]}): $errorMsg");
 
-      // Attempt fallback if we have more models
+      if (errorMsg.contains("API_KEY_INVALID") || errorMsg.contains("API Key missing") || errorMsg.contains("PERMISSION_DENIED")) {
+        yield "Arnab, there is an issue with your API Key. Please check it in Settings.";
+        return;
+      }
+
       if (_currentModelIndex < _models.length - 1) {
         _currentModelIndex++;
-        debugPrint("Falling back to model: ${_models[_currentModelIndex]}");
         yield* sendMessageStream(messages);
       } else {
-        yield "Arnab, my networks are congested. Try again in a moment.";
+        if (errorMsg.contains("429")) {
+          yield "Arnab, you are talking too fast! My processors are overheating (Rate Limit). Try again in 60 seconds.";
+        } else {
+          yield "Arnab, I encountered a system glitch. (Error: $errorMsg)";
+        }
       }
     }
   }
 }
-

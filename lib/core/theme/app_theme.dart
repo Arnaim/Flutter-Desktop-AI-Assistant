@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Genius Aesthetic Colors
-  static const background = Color(0xFF0D0B14); // Deep space purple-black
-  static const sidebarBackground = Color(0xFF16121E); // Slightly lighter purple-black
+  // Ineffa Aesthetic Colors (Genshin-inspired)
+  static const background = Color(0xFF2B4150); // Dark Blue-Gray (Deep background)
+  static const sidebarBackground = Color(0xFF1F2F3B); // Slightly darker for depth
   
-  static const primary = Color(0xFF6B4EE0); // Royal Purple
-  static const secondary = Color(0xFFD4AF37); // Classic Gold
-  static const tertiary = Color(0xFFB8C0D2); // Silver/Platinum
+  static const primary = Color(0xFFD0E8EA); // Pale Cyan (Main highlights/robot shell)
+  static const secondary = Color(0xFFCBCFD0); // Light Gray (Neutral/Mechanical)
+  static const tertiary = Color(0xFFCABBDF); // Lavender (Soft glow/accent)
   
-  static const accent = Color(0xFF9F7AEA); // Light Purple/Lavender
-  static const error = Color(0xFFF56565);
-  static const success = Color(0xFF48BB78);
+  static const accent = Color(0xFFCABBDF); // Lavender
+  static const error = Color(0xFFFF9A9A); // Soft Red
+  static const success = Color(0xFFB5EAD7); // Minty Green
 
-  static const textPrimary = Color(0xFFF7FAFC); 
-  static const textSecondary = Color(0xFFA0AEC0);
-  static const neutral = Color(0xFF4A5568);
+  static const textPrimary = Color(0xFFD0E8EA); 
+  static const textSecondary = Color(0xFFCBCFD0);
+  static const neutral = Color(0xFF6B8A9E); // Muted Blue-Gray
 
   static ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
@@ -28,6 +28,8 @@ class AppTheme {
       tertiary: tertiary,
       surface: sidebarBackground,
       error: error,
+      onPrimary: background,
+      onSurface: textPrimary,
     ),
 
     textTheme: const TextTheme(
@@ -41,7 +43,7 @@ class AppTheme {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: primary,
-        foregroundColor: Colors.white,
+        foregroundColor: background, // High contrast
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         elevation: 0,
       ),

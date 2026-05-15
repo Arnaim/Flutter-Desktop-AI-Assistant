@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:herta_assistant_bot/features/chat/ui/chat_screen.dart';
+import 'package:ineffa_assistant_bot/features/chat/ui/chat_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';

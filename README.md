@@ -1,9 +1,9 @@
 # Project Overview: assistant_bot
 
-`desktop_assistant_bot` is a Flutter-based desktop assistant themed after **Madam Herta** (*Honkai: Star Rail*). The assistant features a "Genius" persona and acts as a functional system-level utility for Windows. But the persona can be updated based on your choice or even no persona at all.
+`desktop_assistant_bot` is a Flutter-based desktop assistant themed after **Ineffa**, an advanced multifunctional robot for domestic application from Nod-Krai. The assistant features a level-headed yet cheerful and protective persona, acting as a functional system-level utility for Windows.
 
 ## Core Features
-- **AI Persona**: Enforces a Madam Herta persona (elegant, dry, slightly arrogant) via system prompt.
+- **AI Persona**: Enforces the Ineffa persona (polite, robotic, caring, and pun-loving) via system prompt.
 - **Backend**: Uses Google Gemini API ('gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.1-flash-lite-preview') for efficient and reliable inference. It switches models automatically if quota runs out. 
 - **Desktop Integration**:
     - **Window Management**: Borderless design with custom drag-to-move controls.
@@ -34,6 +34,6 @@
     - **Dependencies**: `flutter pub get`.
 
 ## Development Conventions
-- **Persona**: Maintain a balance between efficiency (Work Mode) and Herta's character (Banter Mode).
+- **Persona**: Maintain a balance between efficiency (Work Mode) and Ineffa's cheerful, pun-heavy character (Banter Mode).
 - **State Management**: Use `Provider` for all reactive UI updates.
 - **Security**: Never commit API keys to version control.
