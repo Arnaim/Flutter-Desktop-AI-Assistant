@@ -1,70 +1,80 @@
 import 'package:flutter/material.dart';
+import '../models/mood.dart';
 
 class AppTheme {
-  // Ineffa Aesthetic Colors (Genshin-inspired)
-  static const background = Color(0xFF2B4150); // Dark Blue-Gray (Deep background)
-  static const sidebarBackground = Color(0xFF1F2F3B); // Slightly darker for depth
+  // Base Ineffa Colors
+ // static const background = Color(0xFF2B4150); // Dark Blue-Gray
+  static const sidebarBackground = Color(0xFF1F2F3B); // Slightly darker
+  static const textPrimary = Color(0xFFFFFFFF); // Pure White
+  static const textSecondary = Color(0xFFE0E0E0); // Off-White
+  static const neutral = Color(0xFF90A4AE); // Muted Blue-Gray
+  static const error = Color(0xFFFF9A9A);
+  static const success = Color(0xFFB5EAD7);
   
-  static const primary = Color(0xFFD0E8EA); // Pale Cyan (Main highlights/robot shell)
-  static const secondary = Color(0xFFCBCFD0); // Light Gray (Neutral/Mechanical)
-  static const tertiary = Color(0xFFCABBDF); // Lavender (Soft glow/accent)
-  
-  static const accent = Color(0xFFCABBDF); // Lavender
-  static const error = Color(0xFFFF9A9A); // Soft Red
-  static const success = Color(0xFFB5EAD7); // Minty Green
+  // Static references for existing UI components
+  static const primary = Color(0xFFD0E8EA); // Pale Cyan
+  static const secondary = Color(0xFFCBCFD0); // Light Gray
+  static const tertiary = Color(0xFFCABBDF); // Lavender
 
-  static const textPrimary = Color(0xFFD0E8EA); 
-  static const textSecondary = Color(0xFFCBCFD0);
-  static const neutral = Color(0xFF6B8A9E); // Muted Blue-Gray
+  static ThemeData getThemeData(Mood mood) {
+    Color background;
+  //  Color bgColor;
+    Color surfaceColor;
 
-  static ThemeData darkTheme = ThemeData(
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: background,
-    fontFamily: 'Segoe UI', // Clean, professional system font for Windows
+    switch (mood) {
+      case Mood.happy:
+        background = const Color(0xFF81C784); // Soft Green
+    //    bgColor = const Color(0xFF263326); // Dark Greenish-Gray
+        surfaceColor = const Color(0xFF1B261B);
+        break;
+      case Mood.affectionate:
+        background = const Color(0xFFF06292); // Soft Pink
+      //  bgColor = const Color(0xFF33252A); // Dark Pinkish-Gray
+        surfaceColor = const Color(0xFF261B20);
+        break;
+      case Mood.focused:
+        background = const Color(0xFF64B5F6); // Calm Blue
+      //  bgColor = const Color(0xFF252C33); // Dark Bluish-Gray
+        surfaceColor = const Color(0xFF1A2026);
+        break;
+      case Mood.annoyed:
+        background = const Color(0xFFE57373); // Soft Red
+       // bgColor = const Color(0xFF332626); // Dark Reddish-Gray
+        surfaceColor = const Color(0xFF261B1B);
+        break;
+      case Mood.neutral:
+      default:
+        background = const Color(0xFFCABBDF); // Lavender default
+        //bgColor = const Color(0xFF2B4150); // Original Deep Blue-Gray
+        surfaceColor = const Color(0xFF1F2F3B);
+        break;
+    }
 
-    colorScheme: const ColorScheme.dark(
-      primary: primary,
-      secondary: secondary,
-      tertiary: tertiary,
-      surface: sidebarBackground,
-      error: error,
-      onPrimary: background,
-      onSurface: textPrimary,
-    ),
-
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(color: textPrimary, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-      titleLarge: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
-      bodyLarge: TextStyle(color: textPrimary, fontSize: 16),
-      bodyMedium: TextStyle(color: textPrimary, fontSize: 14),
-      bodySmall: TextStyle(color: textSecondary, fontSize: 12),
-    ),
-
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primary,
-        foregroundColor: background, // High contrast
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 0,
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: surfaceColor,
+      fontFamily: 'Segoe UI',
+      colorScheme: ColorScheme.dark(
+        primary: background,
+        secondary: secondary,
+        tertiary: tertiary,
+        surface: surfaceColor,
+        error: error,
       ),
-    ),
-
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: sidebarBackground,
-      hintStyle: const TextStyle(color: neutral),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: primary.withOpacity(0.5)),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: textPrimary, fontSize: 16),
+        bodyMedium: TextStyle(color: textPrimary, fontSize: 14),
+        bodySmall: TextStyle(color: textSecondary, fontSize: 12),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: primary.withOpacity(0.3)),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceColor,
+        hintStyle: const TextStyle(color: neutral),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: background.withOpacity(0.5)),
+        ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: primary, width: 1.5),
-      ),
-    ),
-  );
+    );
+  }
 }

@@ -3,8 +3,10 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  battery_plus
   hotkey_manager_windows
   screen_retriever
+  speech_to_text_windows
   url_launcher_windows
   window_manager
 )

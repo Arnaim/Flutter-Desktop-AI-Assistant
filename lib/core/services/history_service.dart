@@ -1,26 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-
-class ChatSession {
-  final String id;
-  final String title;
-  final List<dynamic> messages;
-
-  ChatSession({required this.id, required this.title, required this.messages});
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'messages': messages,
-  };
-
-  factory ChatSession.fromJson(Map<String, dynamic> json) => ChatSession(
-    id: json['id'],
-    title: json['title'],
-    messages: json['messages'],
-  );
-}
+import '../models/messages.dart';
 
 class HistoryService {
   Future<Directory> _getStorageDir() async {
@@ -37,8 +18,13 @@ class HistoryService {
     final files = dir.listSync().whereType<File>();
     final sessions = <ChatSession>[];
     for (var file in files) {
-      final content = await file.readAsString();
-      sessions.add(ChatSession.fromJson(jsonDecode(content)));
+      try {
+        final content = await file.readAsString();
+        sessions.add(ChatSession.fromJson(jsonDecode(content)));
+      } catch (e) {
+        // Skip corrupted files
+        continue;
+      }
     }
     return sessions;
   }

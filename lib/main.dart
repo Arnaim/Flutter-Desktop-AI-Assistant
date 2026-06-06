@@ -1,13 +1,44 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:ineffa_assistant_bot/core/services/gemini_service.dart';
 import 'package:ineffa_assistant_bot/features/chat/ui/chat_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
-import 'core/theme/app_theme.dart';
 import 'features/chat/provider/chat_provider.dart';
+import 'core/services/theme_service.dart';
+import 'core/services/voice_service.dart';
+import 'core/services/system_stats_provider.dart';
+import 'package:speech_to_text_windows/speech_to_text_windows.dart';
+import 'package:flutter/foundation.dart';
+
+void _manageLocalProxy() async {
+  try {
+    // 1. Clean up any stale instances first
+    await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
+
+    // 2. Start the proxy in the background using absolute path to the script
+    await Process.run(
+      'pm2', 
+      ['start', 'E:/FreeAPIKey/freellmapi/app.js', '--name', 'free-llm-proxy', '--no-autorestart'], 
+      runInShell: true,
+    );
+    
+    debugPrint("Ineffa: Background Proxy Initialized.");
+  } catch (e) {
+    debugPrint("Ineffa: Proxy Error: $e");
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Start the background proxy server
+  _manageLocalProxy();
+  
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+    SpeechToTextWindows.registerWith();
+  }
   
   // Initialize window manager
   await windowManager.ensureInitialized();
@@ -21,6 +52,8 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
+    // Allow the app to handle the close event manually
+    await windowManager.setPreventClose(true);
   });
 
   // Initialize hotkey manager
@@ -29,22 +62,62 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => VoiceService()),
+        ProxyProvider<ThemeService, GeminiService>(
+          update: (_, theme, __) => GeminiService(theme),
+        ),
+        ChangeNotifierProxyProvider2<GeminiService, ThemeService, ChatProvider>(
+          create: (context) => ChatProvider(
+            Provider.of<GeminiService>(context, listen: false),
+            Provider.of<ThemeService>(context, listen: false),
+          ),
+          update: (_, gemini, theme, previous) => previous ?? ChatProvider(gemini, theme),
+        ),
+        ChangeNotifierProvider(create: (_) => SystemStatsProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() async {
+    // Completely remove the proxy when the app exits
+    await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
+    await windowManager.destroy();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const ChatScreen(),
+    return Consumer<ThemeService>(
+      builder: (context, themeService, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: themeService.themeData,
+          home: const ChatScreen(),
+        );
+      },
     );
   }
 }
