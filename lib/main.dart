@@ -11,10 +11,8 @@ import 'core/services/persona_service.dart';
 import 'core/services/system_stats_provider.dart';
 import 'core/services/voice_service.dart';
 
-// Import only if on Windows to prevent Android crashes
-import 'package:window_manager/window_manager.dart' deferred as window_manager;
-import 'package:hotkey_manager/hotkey_manager.dart' deferred as hotkey_manager;
-import 'package:speech_to_text_windows/speech_to_text_windows.dart' deferred as speech_to_text_windows;
+// Conditional import to prevent Android startup crashes
+import 'core/services/desktop_stub.dart' if (dart.library.io) 'core/services/desktop_windows.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +24,7 @@ void main() async {
   };
 
   if (!kIsWeb && Platform.isWindows) {
-    await _initDesktop();
+    await initDesktop();
   }
 
   runApp(
@@ -52,31 +50,6 @@ void main() async {
       child: const MyApp(),
     ),
   );
-}
-
-Future<void> _initDesktop() async {
-  try {
-    await window_manager.loadLibrary();
-    await hotkey_manager.loadLibrary();
-    await speech_to_text_windows.loadLibrary();
-
-    await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
-    await Process.run('pm2', ['start', 'E:/FreeAPIKey/freellmapi/app.js', '--name', 'free-llm-proxy', '--no-autorestart'], runInShell: true);
-    
-    speech_to_text_windows.SpeechToTextWindows.registerWith();
-    
-    await window_manager.windowManager.ensureInitialized();
-    await window_manager.windowManager.waitUntilReadyToShow(const window_manager.WindowOptions(
-      size: Size(1000, 700),
-      titleBarStyle: window_manager.TitleBarStyle.hidden,
-    ), () async {
-      await window_manager.windowManager.show();
-      await window_manager.windowManager.focus();
-    });
-    await hotkey_manager.hotKeyManager.unregisterAll();
-  } catch (e) {
-    debugPrint("Desktop init error: $e");
-  }
 }
 
 class MyApp extends StatelessWidget {

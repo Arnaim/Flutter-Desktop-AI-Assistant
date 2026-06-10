@@ -32,7 +32,13 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _initHotkeys();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      _initHotkeys();
+      // Initialize voice only on windows
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<VoiceService>().initSpeech();
+      });
+    }
     inputFocusNode.onKeyEvent = (node, event) {
       if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
         if (!HardwareKeyboard.instance.isShiftPressed) {
@@ -42,11 +48,6 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       return KeyEventResult.ignored;
     };
-    
-    // Initialize voice
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VoiceService>().initSpeech();
-    });
   }
 
   void _scrollToBottom() {
@@ -104,7 +105,8 @@ class _ChatScreenState extends State<ChatScreen> {
     chat.sendToAI();
   }
 
-  void _toggleVoice(ChatProvider chat, VoiceService voice) async {
+  void _toggleVoice(ChatProvider chat, VoiceService? voice) async {
+    if (voice == null) return;
     if (voice.isListening) {
       await voice.stopListening();
     } else {
@@ -121,7 +123,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chat = context.watch<ChatProvider>();
-    final voice = context.watch<VoiceService>();
+    final voice = context.watch<VoiceService?>();
     final theme = Theme.of(context);
     final isDesktop = !kIsWeb && 
         (defaultTargetPlatform == TargetPlatform.windows || 
@@ -129,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
          defaultTargetPlatform == TargetPlatform.linux);
 
     // Update controller if listening
-    if (voice.isListening && voice.lastWords.isNotEmpty) {
+    if (voice != null && voice.isListening && voice.lastWords.isNotEmpty) {
       controller.text = voice.lastWords;
       controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
     }
@@ -265,7 +267,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildInputArea(ChatProvider chat, VoiceService voice, bool isDesktop) {
+  Widget _buildInputArea(ChatProvider chat, VoiceService? voice, bool isDesktop) {
     return Container(
       padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 12, 0, isDesktop ? 24 : 12, isDesktop ? 24 : 12),
       child: GlassContainer(
@@ -305,33 +307,34 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
               ),
             
-            IconButton(
-              icon: Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (voice.isListening)
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      width: 32 + (voice.soundLevel * 2),
-                      height: 32 + (voice.soundLevel * 2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.error.withOpacity(0.1 + (voice.soundLevel / 10).clamp(0.0, 0.4)),
-                        border: Border.all(
-                          color: AppTheme.error.withOpacity(0.3),
-                          width: 1,
+            if (voice != null)
+              IconButton(
+                icon: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (voice.isListening)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 100),
+                        width: 32 + (voice.soundLevel * 2),
+                        height: 32 + (voice.soundLevel * 2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.error.withOpacity(0.1 + (voice.soundLevel / 10).clamp(0.0, 0.4)),
+                          border: Border.all(
+                            color: AppTheme.error.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                       ),
+                    Icon(
+                      voice.isListening ? Icons.mic_rounded : Icons.mic_none_rounded, 
+                      color: voice.isListening ? AppTheme.error : AppTheme.secondary,
                     ),
-                  Icon(
-                    voice.isListening ? Icons.mic_rounded : Icons.mic_none_rounded, 
-                    color: voice.isListening ? AppTheme.error : AppTheme.secondary,
-                  ),
-                ],
+                  ],
+                ),
+                tooltip: "Voice Command",
+                onPressed: () => _toggleVoice(chat, voice),
               ),
-              tooltip: "Voice Command",
-              onPressed: () => _toggleVoice(chat, voice),
-            ),
             Expanded(
               child: TextField(
                 controller: controller,
@@ -340,7 +343,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 minLines: 1,
                 style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: voice.isListening ? "Listening..." : "Message Ineffa...",
+                  hintText: (voice?.isListening ?? false) ? "Listening..." : "Message Ineffa...",
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
