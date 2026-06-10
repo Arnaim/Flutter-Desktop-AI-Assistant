@@ -16,21 +16,69 @@ class SidebarWidget extends StatelessWidget {
 
   void _showPersonaDialog(BuildContext context) {
     final personaService = context.read<PersonaService>();
-    final current = personaService.currentPersona;
     
-    final nameController = TextEditingController(text: current.name);
-    final userController = TextEditingController(text: current.preferredUserName);
-    final toneController = TextEditingController(text: current.tone);
-    final backgroundController = TextEditingController(text: current.background);
-    final quirksController = TextEditingController(text: current.quirks);
-    String? pickedImagePath = current.imagePath;
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<PersonaService>(
+        builder: (context, service, _) => AlertDialog(
+          backgroundColor: Colors.grey[900]?.withOpacity(0.95),
+          title: const Text("Manage Personas", style: TextStyle(color: Colors.white)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: service.personas.length,
+              itemBuilder: (context, index) {
+                final persona = service.personas[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: persona.imagePath != null
+                        ? (persona.imagePath!.startsWith('assets') ? AssetImage(persona.imagePath!) as ImageProvider : FileImage(File(persona.imagePath!)))
+                        : null,
+                    child: persona.imagePath == null ? const Icon(Icons.person) : null,
+                  ),
+                  title: Text(persona.name, style: const TextStyle(color: Colors.white)),
+                  selected: persona.id == service.currentPersona.id,
+                  onTap: () => service.setActivePersona(persona.id),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: () => service.deletePersona(persona.id),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _showAddPersonaDialog(context);
+              },
+              child: const Text("ADD NEW"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CLOSE"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddPersonaDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final userController = TextEditingController();
+    final toneController = TextEditingController();
+    final backgroundController = TextEditingController();
+    final quirksController = TextEditingController();
+    String? pickedImagePath;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: Colors.grey[900]?.withOpacity(0.95),
-          title: const Text("Persona Editor", style: TextStyle(color: Colors.white)),
+          title: const Text("Add New Persona", style: TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -45,9 +93,7 @@ class SidebarWidget extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 40,
                     backgroundColor: Colors.white10,
-                    backgroundImage: pickedImagePath != null 
-                        ? (pickedImagePath!.startsWith('assets') ? AssetImage(pickedImagePath!) as ImageProvider : FileImage(File(pickedImagePath!)))
-                        : null,
+                    backgroundImage: pickedImagePath != null ? FileImage(File(pickedImagePath!)) : null,
                     child: pickedImagePath == null ? const Icon(Icons.add_a_photo, color: Colors.white54) : null,
                   ),
                 ),
@@ -62,15 +108,12 @@ class SidebarWidget extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                personaService.resetToDefault();
-                Navigator.pop(context);
-              },
-              child: const Text("RESET", style: TextStyle(color: Colors.redAccent)),
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCEL"),
             ),
             ElevatedButton(
               onPressed: () {
-                personaService.updatePersona(Persona(
+                context.read<PersonaService>().addPersona(Persona(
                   name: nameController.text.trim(),
                   preferredUserName: userController.text.trim(),
                   tone: toneController.text.trim(),
@@ -80,7 +123,7 @@ class SidebarWidget extends StatelessWidget {
                 ));
                 Navigator.pop(context);
               },
-              child: const Text("APPLY"),
+              child: const Text("SAVE"),
             ),
           ],
         ),
@@ -115,100 +158,88 @@ class SidebarWidget extends StatelessWidget {
     final settings = SettingsService();
     final currentKey = await settings.getGeminiKey() ?? "";
     final keyController = TextEditingController(text: currentKey);
-    final voiceService = context.read<VoiceService>();
-
+    
     if (!context.mounted) return;
 
     showDialog(
       context: context,
-      builder: (context) => Consumer<VoiceService>(
-        builder: (context, voice, child) => AlertDialog(
-          backgroundColor: AppTheme.sidebarBackground.withOpacity(0.95),
-          title: const Text("System Settings", style: TextStyle(color: AppTheme.textPrimary)),
+      builder: (context) {
+        final voice = context.watch<VoiceService?>();
+        return AlertDialog(
+          backgroundColor: Colors.black.withOpacity(0.9), // Cleaner background
+          title: const Text("System Settings", style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Ineffa Intelligence Key", style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              const Text("API Key", style: TextStyle(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 8),
               TextField(
                 controller: keyController,
-                style: const TextStyle(color: AppTheme.textPrimary),
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: "Key (e.g. freellmapi-xxx) or Key|URL",
                   filled: true,
-                  fillColor: Colors.black12,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  fillColor: Colors.white10,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text("Voice System Status", style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: voice.isAvailable ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          voice.isAvailable ? Icons.check_circle_rounded : Icons.error_rounded,
-                          color: voice.isAvailable ? Colors.green : Colors.red,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
+              if (Platform.isWindows && voice != null) ...[
+                const SizedBox(height: 24),
+                const Text("Voice System Status", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: voice.isAvailable ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            voice.isAvailable ? Icons.check_circle_rounded : Icons.error_rounded,
+                            color: voice.isAvailable ? Colors.green : Colors.red,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            voice.isAvailable ? "Speech Engine Ready" : "Speech Engine Offline",
+                            style: TextStyle(color: voice.isAvailable ? Colors.green : Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      if (voice.lastError != null) ...[
+                        const SizedBox(height: 8),
                         Text(
-                          voice.isAvailable ? "Speech Engine Ready" : "Speech Engine Offline",
-                          style: TextStyle(color: voice.isAvailable ? Colors.green : Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+                          "Error: ${voice.lastError}",
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
                         ),
                       ],
-                    ),
-                    if (voice.lastError != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        "Error: ${voice.lastError}",
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
                     ],
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => voice.initSpeech(),
-                        icon: const Icon(Icons.refresh_rounded, size: 16),
-                        label: const Text("RE-INITIALIZE MIC"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white10,
-                          foregroundColor: Colors.white,
-                          textStyle: const TextStyle(fontSize: 11),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL", style: TextStyle(color: AppTheme.textSecondary)),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.white70)),
             ),
             ElevatedButton(
               onPressed: () async {
                 await settings.saveGeminiKey(keyController.text.trim());
                 if (context.mounted) Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-              child: const Text("SAVE CHANGES"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              child: const Text("SAVE"),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 

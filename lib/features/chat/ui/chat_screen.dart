@@ -6,16 +6,19 @@ import 'package:ineffa_assistant_bot/shared/widgets/glass_container.dart';
 import 'package:ineffa_assistant_bot/shared/widgets/sidebar_widget.dart';
 import 'package:ineffa_assistant_bot/shared/widgets/typing_indicator.dart';
 import 'dart:typed_data';
+import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:hotkey_manager/hotkey_manager.dart';
 import '../provider/chat_provider.dart';
 import '../../../core/services/voice_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/custom_title_bar.dart';
 import 'camera_capture_screen.dart';
 import 'package:camera/camera.dart';
+
+// Conditional imports for desktop-only features
+import 'package:window_manager/window_manager.dart' if (dart.library.io) 'package:window_manager/window_manager.dart';
+import 'package:hotkey_manager/hotkey_manager.dart' if (dart.library.io) 'package:hotkey_manager/hotkey_manager.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -32,6 +35,12 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isWindows) {
+      _initHotkeys();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<VoiceService>().initSpeech();
+      });
+    }
     inputFocusNode.onKeyEvent = (node, event) {
       if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
         if (!HardwareKeyboard.instance.isShiftPressed) {
@@ -54,6 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initHotkeys() async {
+    // This is only called on Windows due to platform-guard in initState
     await hotKeyManager.register(
       HotKey(
         key: LogicalKeyboardKey.space,
@@ -87,7 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final String? filePath = chat.pickedFilePath;
     final Uint8List? imageBytes = chat.capturedImageBytes;
     
-    chat.clearMedia(); // Clear preview immediately
+    chat.clearMedia(); 
     controller.clear();
     
     chat.addUserMessage(
@@ -118,18 +128,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final chat = context.watch<ChatProvider>();
     final voice = context.watch<VoiceService?>();
     final theme = Theme.of(context);
-    final isDesktop = !kIsWeb && 
-        (defaultTargetPlatform == TargetPlatform.windows || 
-         defaultTargetPlatform == TargetPlatform.macOS || 
-         defaultTargetPlatform == TargetPlatform.linux);
+    final isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
-    // Update controller if listening
     if (voice != null && voice.isListening && voice.lastWords.isNotEmpty) {
       controller.text = voice.lastWords;
       controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
     }
 
-    // Scroll to bottom after frame
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     return Scaffold(
@@ -137,7 +142,6 @@ class _ChatScreenState extends State<ChatScreen> {
       drawer: !isDesktop ? const Drawer(child: SidebarWidget()) : null,
       body: Stack(
         children: [
-          // 1. Background Layer (Enhanced for Liquid Glass Visibility)
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -150,8 +154,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          
-          // Decorative background elements
           Positioned(
             top: -50,
             right: -50,
@@ -169,8 +171,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-
-          // 2. UI Layer
           LayoutBuilder(
             builder: (context, constraints) {
               final showSidebar = constraints.maxWidth > 800 && isDesktop;

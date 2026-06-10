@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:uuid/uuid.dart';
+
 class Persona {
+  final String id;
   final String name;
   final String preferredUserName;
   final String tone;
@@ -11,15 +14,17 @@ class Persona {
   final String? imagePath;
 
   Persona({
+    String? id,
     required this.name,
     required this.preferredUserName,
     required this.tone,
     required this.background,
     required this.quirks,
     this.imagePath,
-  });
+  }) : this.id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'name': name,
     'preferredUserName': preferredUserName,
     'tone': tone,
@@ -29,6 +34,7 @@ class Persona {
   };
 
   factory Persona.fromJson(Map<String, dynamic> json) => Persona(
+    id: json['id'],
     name: json['name'] ?? 'Ineffa',
     preferredUserName: json['preferredUserName'] ?? 'Arnab',
     tone: json['tone'] ?? 'Cheery, robotic, and polite.',
@@ -48,42 +54,63 @@ class Persona {
 }
 
 class PersonaService extends ChangeNotifier {
-  static const String _key = 'custom_persona';
-  Persona _currentPersona = Persona.defaultPersona;
+  static const String _key = 'all_personas';
+  static const String _activeIdKey = 'active_persona_id';
+  
+  List<Persona> _personas = [];
+  String? _activePersonaId;
 
-  Persona get currentPersona => _currentPersona;
-
-  PersonaService() {
-    loadPersona();
+  List<Persona> get personas => _personas;
+  
+  Persona get currentPersona {
+    if (_activePersonaId == null || _personas.isEmpty) return Persona.defaultPersona;
+    return _personas.firstWhere((p) => p.id == _activePersonaId, orElse: () => Persona.defaultPersona);
   }
 
-  Future<void> loadPersona() async {
+  PersonaService() {
+    loadPersonas();
+  }
+
+  Future<void> loadPersonas() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? personaJson = prefs.getString(_key);
-    if (personaJson != null) {
+    final String? personasJson = prefs.getString(_key);
+    _activePersonaId = prefs.getString(_activeIdKey);
+    
+    if (personasJson != null) {
       try {
-        _currentPersona = Persona.fromJson(jsonDecode(personaJson));
+        final List<dynamic> decoded = jsonDecode(personasJson);
+        _personas = decoded.map((p) => Persona.fromJson(p)).toList();
       } catch (e) {
-        debugPrint("PersonaService: Failed to decode persona: $e");
-        _currentPersona = Persona.defaultPersona;
+        _personas = [Persona.defaultPersona];
       }
     } else {
-      _currentPersona = Persona.defaultPersona;
+      _personas = [Persona.defaultPersona];
     }
     notifyListeners();
   }
 
-  Future<void> updatePersona(Persona newPersona) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(newPersona.toJson()));
-    _currentPersona = newPersona;
+  Future<void> addPersona(Persona p) async {
+    _personas.add(p);
+    await _save();
     notifyListeners();
   }
 
-  Future<void> resetToDefault() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
-    _currentPersona = Persona.defaultPersona;
+  Future<void> deletePersona(String id) async {
+    _personas.removeWhere((p) => p.id == id);
+    if (_activePersonaId == id) _activePersonaId = _personas.isNotEmpty ? _personas.first.id : null;
+    await _save();
     notifyListeners();
+  }
+
+  Future<void> setActivePersona(String id) async {
+    _activePersonaId = id;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_activeIdKey, id);
+    notifyListeners();
+  }
+
+  Future<void> _save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, jsonEncode(_personas.map((p) => p.toJson()).toList()));
   }
 }
