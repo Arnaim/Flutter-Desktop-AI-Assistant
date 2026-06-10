@@ -7,14 +7,17 @@ class VoiceService extends ChangeNotifier {
   String _lastWords = '';
   bool _isAvailable = false;
   double _soundLevel = 0.0;
+  String? _lastError;
 
   bool get isListening => _isListening;
   String get lastWords => _lastWords;
   bool get isAvailable => _isAvailable;
   double get soundLevel => _soundLevel;
+  String? get lastError => _lastError;
 
   Future<void> initSpeech() async {
     try {
+      _lastError = null;
       debugPrint("VoiceService: Attempting initialization...");
       _isAvailable = await _speech.initialize(
         debugLogging: true,
@@ -27,24 +30,30 @@ class VoiceService extends ChangeNotifier {
           }
         },
         onError: (errorNotification) {
-          debugPrint('Speech error: ${errorNotification.errorMsg} - Permanent: ${errorNotification.permanent}');
+          _lastError = "${errorNotification.errorMsg} (${errorNotification.permanent ? 'Permanent' : 'Transient'})";
+          debugPrint('VoiceService Error: $_lastError');
           _isListening = false;
           _soundLevel = 0.0;
           notifyListeners();
         },
       );
       
-      if (_isAvailable) {
-        debugPrint("VoiceService: Successfully initialized.");
-      } else {
-        debugPrint("VoiceService: Initialization returned false (Available: false).");
+      if (!_isAvailable) {
+        _lastError = "Speech recognition not available on this device. Ensure 'Online Speech Recognition' is enabled in Windows Settings.";
       }
+      
       notifyListeners();
     } catch (e) {
-      debugPrint('VoiceService: Speech initialization failed with exception: $e');
+      _lastError = "Initialization failed: $e";
+      debugPrint('VoiceService Exception: $e');
       _isAvailable = false;
       notifyListeners();
     }
+  }
+
+  void clearError() {
+    _lastError = null;
+    notifyListeners();
   }
 
   Future<void> startListening({required Function(String) onResult}) async {
@@ -65,7 +74,7 @@ class VoiceService extends ChangeNotifier {
         await _speech.listen(
           onResult: (result) {
             _lastWords = result.recognizedWords;
-            debugPrint("VoiceService Words: '$_lastWords' (Final: ${result.finalResult})");
+            debugPrint("VoiceService: [RESULT] recognizedWords: '$_lastWords' (Final: ${result.finalResult})");
             
             if (result.finalResult) {
               _isListening = false;
@@ -80,13 +89,17 @@ class VoiceService extends ChangeNotifier {
             }
           },
           onSoundLevelChange: (level) {
+            // Log if sound is actually detected
+            if (level > 0.5) {
+               debugPrint("VoiceService: [LEVEL DETECTED] $level");
+            }
             _soundLevel = level;
             notifyListeners();
           },
-          listenFor: const Duration(seconds: 45),
-          pauseFor: const Duration(seconds: 5),
+          listenFor: const Duration(seconds: 60),
+          pauseFor: const Duration(seconds: 10),
           cancelOnError: false,
-          listenMode: ListenMode.confirmation, // Changed to confirmation for better Windows accuracy
+          listenMode: ListenMode.dictation, // Dictation is often more reliable for long speech on Windows
         );
       } catch (e) {
         debugPrint("VoiceService Listen Error: $e");

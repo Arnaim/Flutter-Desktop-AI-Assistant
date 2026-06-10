@@ -310,22 +310,18 @@ class _ChatScreenState extends State<ChatScreen> {
                 alignment: Alignment.center,
                 children: [
                   if (voice.isListening)
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 1.0, end: 1.0 + (voice.soundLevel / 10).clamp(0.0, 1.0)),
+                    AnimatedContainer(
                       duration: const Duration(milliseconds: 100),
-                      builder: (context, value, child) {
-                        return Transform.scale(
-                          scale: value,
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.error.withOpacity(0.2),
-                            ),
-                          ),
-                        );
-                      },
+                      width: 32 + (voice.soundLevel * 2),
+                      height: 32 + (voice.soundLevel * 2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.error.withOpacity(0.1 + (voice.soundLevel / 10).clamp(0.0, 0.4)),
+                        border: Border.all(
+                          color: AppTheme.error.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
                     ),
                   Icon(
                     voice.isListening ? Icons.mic_rounded : Icons.mic_none_rounded, 

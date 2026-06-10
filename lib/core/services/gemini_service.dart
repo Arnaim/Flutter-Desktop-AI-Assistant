@@ -237,6 +237,12 @@ IMPORTANT: Even if you are not "Ineffa", you MUST still follow the [MOOD: name] 
       httpClient: baseUrl != null && baseUrl.isNotEmpty 
           ? CustomBaseUrlClient(baseUrl) 
           : null,
+      safetySettings: [
+        SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+        SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+        SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
+        SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+      ],
     );
 
     final List<Content> history = [];

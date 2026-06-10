@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/persona_service.dart';
 
 class ChatBubble extends StatelessWidget {
   final dynamic message;
@@ -20,6 +22,8 @@ class ChatBubble extends StatelessWidget {
     final hasFilePath = message.filePath != null;
     final hasImageBytes = message.imageBytes != null;
     final cleanText = _cleanContent(message.content);
+    
+    final persona = context.watch<PersonaService>().currentPersona;
 
     // If the message only contained a command code, don't show an empty bubble
     if (cleanText.isEmpty && !hasFilePath && !hasImageBytes) {
@@ -36,7 +40,11 @@ class ChatBubble extends StatelessWidget {
             CircleAvatar(
               backgroundColor: theme.colorScheme.surface, 
               radius: 16,
-              foregroundImage: const AssetImage('assets/ineffa_pfp.jpg'),
+              foregroundImage: persona.imagePath != null
+                  ? (persona.imagePath!.startsWith('assets') 
+                      ? AssetImage(persona.imagePath!) as ImageProvider 
+                      : FileImage(File(persona.imagePath!)))
+                  : const AssetImage('assets/ineffa_pfp.jpg'),
               child: Icon(Icons.auto_awesome, size: 16, color: theme.colorScheme.primary), 
             ),
             const SizedBox(width: 12),

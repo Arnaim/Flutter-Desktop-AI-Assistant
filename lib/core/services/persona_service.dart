@@ -7,12 +7,14 @@ class Persona {
   final String tone;
   final String background;
   final String quirks;
+  final String? imagePath;
 
   Persona({
     required this.name,
     required this.tone,
     required this.background,
     required this.quirks,
+    this.imagePath,
   });
 
   Map<String, dynamic> toJson() => {
@@ -20,6 +22,7 @@ class Persona {
     'tone': tone,
     'background': background,
     'quirks': quirks,
+    'imagePath': imagePath,
   };
 
   factory Persona.fromJson(Map<String, dynamic> json) => Persona(
@@ -27,13 +30,15 @@ class Persona {
     tone: json['tone'] ?? 'Cheery, robotic, and polite.',
     background: json['background'] ?? 'A robotic assistant from Nod-Krai, designed to help Arnab.',
     quirks: json['quirks'] ?? 'Uses puns, refers to the user as Arnab, and has a slight robotic stutter in text sometimes.',
+    imagePath: json['imagePath'],
   );
 
   static Persona get defaultPersona => Persona(
-    name: 'Ineffa',
-    tone: 'Cheery, robotic, and polite.',
-    background: 'A robotic assistant from Nod-Krai, designed to help Arnab.',
-    quirks: 'Uses puns, refers to the user as Arnab, and loves to express her moods via system-wide color changes.',
+    name: 'Unconfigured Identity',
+    tone: 'Polite and awaiting instructions.',
+    background: 'A new assistant waiting for its creator to define its purpose and personality.',
+    quirks: 'Reminds the user to set a personality in the PERSONA menu.',
+    imagePath: null,
   );
 }
 
