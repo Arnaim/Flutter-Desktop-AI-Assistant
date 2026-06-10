@@ -34,31 +34,33 @@ void _manageLocalProxy() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Start the background proxy server
-  _manageLocalProxy();
-  
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
-    SpeechToTextWindows.registerWith();
-  }
-  
-  // Initialize window manager
-  await windowManager.ensureInitialized();
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1000, 700),
-    center: true,
-    backgroundColor: Colors.transparent,
-    skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.hidden, // Modern borderless look
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-    // Allow the app to handle the close event manually
-    await windowManager.setPreventClose(true);
-  });
+  final isWindows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
-  // Initialize hotkey manager
-  await hotKeyManager.unregisterAll();
+  if (isWindows) {
+    // Start the background proxy server only on Windows
+    _manageLocalProxy();
+    
+    SpeechToTextWindows.registerWith();
+    
+    // Initialize window manager
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1000, 700),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.hidden, // Modern borderless look
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+      // Allow the app to handle the close event manually
+      await windowManager.setPreventClose(true);
+    });
+
+    // Initialize hotkey manager
+    await hotKeyManager.unregisterAll();
+  }
 
   runApp(
     MultiProvider(
@@ -94,20 +96,26 @@ class _MyAppState extends State<MyApp> with WindowListener {
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      windowManager.addListener(this);
+    }
   }
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      windowManager.removeListener(this);
+    }
     super.dispose();
   }
 
   @override
   void onWindowClose() async {
-    // Completely remove the proxy when the app exits
-    await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
-    await windowManager.destroy();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      // Completely remove the proxy when the app exits
+      await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
+      await windowManager.destroy();
+    }
   }
 
   @override
