@@ -277,7 +277,18 @@ class SidebarWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.hub_rounded, size: 14, color: theme.colorScheme.secondary),
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                      backgroundImage: persona.imagePath != null
+                          ? (persona.imagePath!.startsWith('assets') 
+                              ? AssetImage(persona.imagePath!) as ImageProvider 
+                              : FileImage(File(persona.imagePath!)))
+                          : null,
+                      child: persona.imagePath == null 
+                          ? Icon(Icons.auto_awesome, size: 10, color: theme.colorScheme.primary)
+                          : null,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       "ACTIVE INTELLIGENCE",

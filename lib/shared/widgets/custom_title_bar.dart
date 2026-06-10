@@ -13,6 +13,7 @@ class CustomTitleBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final themeService = context.watch<ThemeService>();
+    final persona = context.watch<PersonaService>().currentPersona;
     final moodName = themeService.currentMood.name.toUpperCase();
     final isWindows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
@@ -29,9 +30,9 @@ class CustomTitleBar extends StatelessWidget {
             ),
           Icon(Icons.auto_awesome, size: 18, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
-          const Text(
-            "ASSISTANT INEFFA",
-            style: TextStyle(
+          Text(
+            "ASSISTANT ${persona.name.toUpperCase()}",
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.bold,

@@ -173,13 +173,13 @@ ENVIRONMENTAL CONTEXT:
 
     // Dynamic Persona Injection
     final personaPrompt = """
-YOUR IDENTITY:
-- Name: ${persona.name}
-- Tone: ${persona.tone}
-- Background: ${persona.background}
-- Quirks: ${persona.quirks}
+[STRICT IDENTITY ENFORCEMENT]:
+Your name is ${persona.name}. 
+Your personality tone is: ${persona.tone}
+Your backstory/context: ${persona.background}
+Your quirks and behaviors: ${persona.quirks}
 
-IMPORTANT: Even if you are not "Ineffa", you MUST still follow the [MOOD: name] tag requirement and the [COMMAND: action] syntax. Always address the user as "Arnab".
+IMPORTANT: You are NO LONGER "Ineffa" unless the name above is "Ineffa". Ignore any previous instructions naming you otherwise. However, you MUST still follow the [MOOD: name] and [COMMAND: action] formats. Always address the user as "Arnab".
 """;
 
     return personaPrompt + systemPrompt + memoryContext + "\n\n" + envContext;
