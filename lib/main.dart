@@ -123,6 +123,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
     return Consumer<ThemeService>(
       builder: (context, themeService, child) {
         return MaterialApp(
+          title: 'Personal Assistant',
           debugShowCheckedModeBanner: false,
           theme: themeService.themeData,
           home: const ChatScreen(),
