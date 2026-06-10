@@ -215,6 +215,7 @@ class SidebarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chat = context.watch<ChatProvider>();
+    final persona = context.watch<PersonaService>().currentPersona;
     final theme = Theme.of(context);
     return GlassContainer(
       width: 260,

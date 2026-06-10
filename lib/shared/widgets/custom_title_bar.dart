@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/theme_service.dart';
+import '../../../core/services/persona_service.dart';
 
 class CustomTitleBar extends StatelessWidget {
   final bool showDrawerTrigger;
