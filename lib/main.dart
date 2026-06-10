@@ -66,8 +66,10 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeService()),
-        ChangeNotifierProvider(create: (_) => VoiceService()),
         ChangeNotifierProvider(create: (_) => PersonaService()),
+        if (isWindows) ChangeNotifierProvider(create: (_) => VoiceService()),
+        if (isWindows) ChangeNotifierProvider(create: (_) => SystemStatsProvider()),
+        
         ProxyProvider2<ThemeService, PersonaService, GeminiService>(
           update: (_, theme, persona, __) => GeminiService(theme, persona),
         ),
@@ -78,7 +80,6 @@ void main() async {
           ),
           update: (_, gemini, theme, previous) => previous ?? ChatProvider(gemini, theme),
         ),
-        ChangeNotifierProvider(create: (_) => SystemStatsProvider()),
       ],
       child: const MyApp(),
     ),
