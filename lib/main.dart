@@ -1,65 +1,32 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:ineffa_assistant_bot/core/services/gemini_service.dart';
-import 'package:ineffa_assistant_bot/features/chat/ui/chat_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:hotkey_manager/hotkey_manager.dart';
-import 'features/chat/provider/chat_provider.dart';
-import 'core/services/theme_service.dart';
-import 'core/services/voice_service.dart';
-import 'core/services/persona_service.dart';
-import 'core/services/system_stats_provider.dart';
-import 'package:speech_to_text_windows/speech_to_text_windows.dart';
 import 'package:flutter/foundation.dart';
 
-void _manageLocalProxy() async {
-  try {
-    // 1. Clean up any stale instances first
-    await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
+import 'core/services/gemini_service.dart';
+import 'features/chat/ui/chat_screen.dart';
+import 'features/chat/provider/chat_provider.dart';
+import 'core/services/theme_service.dart';
+import 'core/services/persona_service.dart';
+import 'core/services/system_stats_provider.dart';
+import 'core/services/voice_service.dart';
 
-    // 2. Start the proxy in the background using absolute path to the script
-    await Process.run(
-      'pm2', 
-      ['start', 'E:/FreeAPIKey/freellmapi/app.js', '--name', 'free-llm-proxy', '--no-autorestart'], 
-      runInShell: true,
-    );
-    
-    debugPrint("Ineffa: Background Proxy Initialized.");
-  } catch (e) {
-    debugPrint("Ineffa: Proxy Error: $e");
-  }
-}
+// Import only if on Windows to prevent Android crashes
+import 'package:window_manager/window_manager.dart' deferred as window_manager;
+import 'package:hotkey_manager/hotkey_manager.dart' deferred as hotkey_manager;
+import 'package:speech_to_text_windows/speech_to_text_windows.dart' deferred as speech_to_text_windows;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  final isWindows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
-  if (isWindows) {
-    // Start the background proxy server only on Windows
-    _manageLocalProxy();
-    
-    SpeechToTextWindows.registerWith();
-    
-    // Initialize window manager
-    await windowManager.ensureInitialized();
-    WindowOptions windowOptions = const WindowOptions(
-      size: Size(1000, 700),
-      center: true,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden, // Modern borderless look
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-      // Allow the app to handle the close event manually
-      await windowManager.setPreventClose(true);
-    });
+  // Global Error Handler
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint("CRITICAL_STARTUP_ERROR: ${details.exception}");
+    FlutterError.presentError(details);
+  };
 
-    // Initialize hotkey manager
-    await hotKeyManager.unregisterAll();
+  if (!kIsWeb && Platform.isWindows) {
+    await _initDesktop();
   }
 
   runApp(
@@ -67,9 +34,10 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeService()),
         ChangeNotifierProvider(create: (_) => PersonaService()),
-        if (isWindows) ChangeNotifierProvider(create: (_) => VoiceService()),
-        if (isWindows) ChangeNotifierProvider(create: (_) => SystemStatsProvider()),
-        
+        if (!kIsWeb && Platform.isWindows) ...[
+          ChangeNotifierProvider(create: (_) => VoiceService()),
+          ChangeNotifierProvider(create: (_) => SystemStatsProvider()),
+        ],
         ProxyProvider2<ThemeService, PersonaService, GeminiService>(
           update: (_, theme, persona, __) => GeminiService(theme, persona),
         ),
@@ -86,50 +54,43 @@ void main() async {
   );
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+Future<void> _initDesktop() async {
+  try {
+    await window_manager.loadLibrary();
+    await hotkey_manager.loadLibrary();
+    await speech_to_text_windows.loadLibrary();
 
-  @override
-  State<MyApp> createState() => _MyAppState();
+    await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
+    await Process.run('pm2', ['start', 'E:/FreeAPIKey/freellmapi/app.js', '--name', 'free-llm-proxy', '--no-autorestart'], runInShell: true);
+    
+    speech_to_text_windows.SpeechToTextWindows.registerWith();
+    
+    await window_manager.windowManager.ensureInitialized();
+    await window_manager.windowManager.waitUntilReadyToShow(const window_manager.WindowOptions(
+      size: Size(1000, 700),
+      titleBarStyle: window_manager.TitleBarStyle.hidden,
+    ), () async {
+      await window_manager.windowManager.show();
+      await window_manager.windowManager.focus();
+    });
+    await hotkey_manager.hotKeyManager.unregisterAll();
+  } catch (e) {
+    debugPrint("Desktop init error: $e");
+  }
 }
 
-class _MyAppState extends State<MyApp> with WindowListener {
-  @override
-  void initState() {
-    super.initState();
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
-      windowManager.addListener(this);
-    }
-  }
-
-  @override
-  void dispose() {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
-      windowManager.removeListener(this);
-    }
-    super.dispose();
-  }
-
-  @override
-  void onWindowClose() async {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
-      // Completely remove the proxy when the app exits
-      await Process.run('pm2', ['delete', 'free-llm-proxy'], runInShell: true);
-      await windowManager.destroy();
-    }
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeService>(
-      builder: (context, themeService, child) {
-        return MaterialApp(
-          title: 'Personal Assistant',
-          debugShowCheckedModeBanner: false,
-          theme: themeService.themeData,
-          home: const ChatScreen(),
-        );
-      },
+      builder: (context, themeService, child) => MaterialApp(
+        title: 'Personal Assistant',
+        debugShowCheckedModeBanner: false,
+        theme: themeService.themeData,
+        home: const ChatScreen(),
+      ),
     );
   }
 }
