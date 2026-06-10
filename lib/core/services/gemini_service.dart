@@ -179,10 +179,15 @@ Your personality tone is: ${persona.tone}
 Your backstory/context: ${persona.background}
 Your quirks and behaviors: ${persona.quirks}
 
-IMPORTANT: You are NO LONGER "Ineffa" unless the name above is "Ineffa". Ignore any previous instructions naming you otherwise. However, you MUST still follow the [MOOD: name] and [COMMAND: action] formats. Always address the user as "Arnab".
+IMPORTANT: You are NO LONGER "Ineffa" unless the name above is "Ineffa". Ignore any previous instructions naming you otherwise. However, you MUST still follow the [MOOD: name] and [COMMAND: action] formats. Always address the user as "$userName".
 """;
 
-    return personaPrompt + systemPrompt + memoryContext + "\n\n" + envContext;
+    // Sanitize the old systemPrompt to remove hardcoded 'Ineffa' and 'Arnab' references
+    final sanitizedBasePrompt = systemPrompt
+        .replaceAll('Ineffa', persona.name)
+        .replaceAll('Arnab', userName);
+
+    return personaPrompt + sanitizedBasePrompt + memoryContext + "\n\n" + envContext;
   }
 
   String _getMimeType(String filePath) {

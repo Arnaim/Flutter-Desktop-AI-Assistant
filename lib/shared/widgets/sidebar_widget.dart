@@ -19,6 +19,7 @@ class SidebarWidget extends StatelessWidget {
     final current = personaService.currentPersona;
     
     final nameController = TextEditingController(text: current.name);
+    final userController = TextEditingController(text: current.preferredUserName);
     final toneController = TextEditingController(text: current.tone);
     final backgroundController = TextEditingController(text: current.background);
     final quirksController = TextEditingController(text: current.quirks);
@@ -51,7 +52,8 @@ class SidebarWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildPersonaField("Identity Name", nameController),
+                _buildPersonaField("Identity Name (AI Name)", nameController),
+                _buildPersonaField("How AI should call you?", userController),
                 _buildPersonaField("Behavioral Tone", toneController),
                 _buildPersonaField("Lore Background", backgroundController, maxLines: 3),
                 _buildPersonaField("Unique Quirks", quirksController, maxLines: 2),
@@ -70,6 +72,7 @@ class SidebarWidget extends StatelessWidget {
               onPressed: () {
                 personaService.updatePersona(Persona(
                   name: nameController.text.trim(),
+                  preferredUserName: userController.text.trim(),
                   tone: toneController.text.trim(),
                   background: backgroundController.text.trim(),
                   quirks: quirksController.text.trim(),

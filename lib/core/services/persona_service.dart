@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class Persona {
   final String name;
+  final String preferredUserName;
   final String tone;
   final String background;
   final String quirks;
@@ -11,6 +12,7 @@ class Persona {
 
   Persona({
     required this.name,
+    required this.preferredUserName,
     required this.tone,
     required this.background,
     required this.quirks,
@@ -19,6 +21,7 @@ class Persona {
 
   Map<String, dynamic> toJson() => {
     'name': name,
+    'preferredUserName': preferredUserName,
     'tone': tone,
     'background': background,
     'quirks': quirks,
@@ -27,14 +30,16 @@ class Persona {
 
   factory Persona.fromJson(Map<String, dynamic> json) => Persona(
     name: json['name'] ?? 'Ineffa',
+    preferredUserName: json['preferredUserName'] ?? 'Arnab',
     tone: json['tone'] ?? 'Cheery, robotic, and polite.',
-    background: json['background'] ?? 'A robotic assistant from Nod-Krai, designed to help Arnab.',
-    quirks: json['quirks'] ?? 'Uses puns, refers to the user as Arnab, and has a slight robotic stutter in text sometimes.',
+    background: json['background'] ?? 'A robotic assistant designed to help.',
+    quirks: json['quirks'] ?? 'Uses puns and refers to the user warmly.',
     imagePath: json['imagePath'],
   );
 
   static Persona get defaultPersona => Persona(
     name: 'Unconfigured Identity',
+    preferredUserName: 'User',
     tone: 'Polite and awaiting instructions.',
     background: 'A new assistant waiting for its creator to define its purpose and personality.',
     quirks: 'Reminds the user to set a personality in the PERSONA menu.',
