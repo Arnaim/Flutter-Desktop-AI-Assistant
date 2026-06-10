@@ -32,13 +32,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
-      _initHotkeys();
-      // Initialize voice only on windows
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<VoiceService>().initSpeech();
-      });
-    }
     inputFocusNode.onKeyEvent = (node, event) {
       if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
         if (!HardwareKeyboard.instance.isShiftPressed) {
