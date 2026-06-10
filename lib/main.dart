@@ -8,6 +8,7 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'features/chat/provider/chat_provider.dart';
 import 'core/services/theme_service.dart';
 import 'core/services/voice_service.dart';
+import 'core/services/persona_service.dart';
 import 'core/services/system_stats_provider.dart';
 import 'package:speech_to_text_windows/speech_to_text_windows.dart';
 import 'package:flutter/foundation.dart';
@@ -64,8 +65,9 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeService()),
         ChangeNotifierProvider(create: (_) => VoiceService()),
-        ProxyProvider<ThemeService, GeminiService>(
-          update: (_, theme, __) => GeminiService(theme),
+        ChangeNotifierProvider(create: (_) => PersonaService()),
+        ProxyProvider2<ThemeService, PersonaService, GeminiService>(
+          update: (_, theme, persona, __) => GeminiService(theme, persona),
         ),
         ChangeNotifierProxyProvider2<GeminiService, ThemeService, ChatProvider>(
           create: (context) => ChatProvider(

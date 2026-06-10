@@ -9,6 +9,7 @@ import 'package:ineffa_assistant_bot/core/services/memory_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'theme_service.dart';
+import 'persona_service.dart';
 import '../models/mood.dart';
 
 class CustomBaseUrlClient extends http.BaseClient {
@@ -55,8 +56,9 @@ class GeminiService {
   final SettingsService _settings = SettingsService();
   final MemoryService _memoryService = MemoryService();
   final ThemeService _themeService;
+  final PersonaService _personaService;
 
-  GeminiService(this._themeService) {
+  GeminiService(this._themeService, this._personaService) {
     _initializeModels();
   }
 
@@ -150,6 +152,8 @@ class GeminiService {
     final String homeDir = Platform.environment['USERPROFILE'] ?? 'C:\\Users\\naimu';
     final String userName = p.basename(homeDir); 
     final String os = Platform.operatingSystem;
+    
+    final persona = _personaService.currentPersona;
 
     final memories = await _memoryService.loadMemories();
     final memoryContext = memories.isNotEmpty 
@@ -167,7 +171,18 @@ ENVIRONMENTAL CONTEXT:
   - Downloads: $homeDir\\Downloads
 """;
 
-    return systemPrompt + memoryContext + "\n\n" + envContext;
+    // Dynamic Persona Injection
+    final personaPrompt = """
+YOUR IDENTITY:
+- Name: ${persona.name}
+- Tone: ${persona.tone}
+- Background: ${persona.background}
+- Quirks: ${persona.quirks}
+
+IMPORTANT: Even if you are not "Ineffa", you MUST still follow the [MOOD: name] tag requirement and the [COMMAND: action] syntax. Always address the user as "Arnab".
+""";
+
+    return personaPrompt + systemPrompt + memoryContext + "\n\n" + envContext;
   }
 
   String _getMimeType(String filePath) {

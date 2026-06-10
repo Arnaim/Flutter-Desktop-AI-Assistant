@@ -15,8 +15,9 @@ class VoiceService extends ChangeNotifier {
 
   Future<void> initSpeech() async {
     try {
+      debugPrint("VoiceService: Attempting initialization...");
       _isAvailable = await _speech.initialize(
-        debugLogging: true, // Enable detailed Windows logs
+        debugLogging: true,
         onStatus: (status) {
           debugPrint('Speech status: $status');
           if (status == 'done' || status == 'notListening') {
@@ -26,7 +27,7 @@ class VoiceService extends ChangeNotifier {
           }
         },
         onError: (errorNotification) {
-          debugPrint('Speech error: $errorNotification');
+          debugPrint('Speech error: ${errorNotification.errorMsg} - Permanent: ${errorNotification.permanent}');
           _isListening = false;
           _soundLevel = 0.0;
           notifyListeners();
@@ -34,14 +35,13 @@ class VoiceService extends ChangeNotifier {
       );
       
       if (_isAvailable) {
-        var locales = await _speech.locales();
-        debugPrint("VoiceService: Available locales: ${locales.map((l) => l.localeId).join(', ')}");
+        debugPrint("VoiceService: Successfully initialized.");
+      } else {
+        debugPrint("VoiceService: Initialization returned false (Available: false).");
       }
-      
-      debugPrint("VoiceService: Initialized, available: $_isAvailable");
       notifyListeners();
     } catch (e) {
-      debugPrint('Speech initialization failed: $e');
+      debugPrint('VoiceService: Speech initialization failed with exception: $e');
       _isAvailable = false;
       notifyListeners();
     }
@@ -49,7 +49,7 @@ class VoiceService extends ChangeNotifier {
 
   Future<void> startListening({required Function(String) onResult}) async {
     if (!_isAvailable) {
-      debugPrint("VoiceService: Not available, attempting to re-init...");
+      debugPrint("VoiceService: Not available, re-initializing...");
       await initSpeech();
     }
 
@@ -59,19 +59,8 @@ class VoiceService extends ChangeNotifier {
       _soundLevel = 0.0;
       notifyListeners();
 
-      debugPrint("VoiceService: Starting to listen...");
+      debugPrint("VoiceService: Starting to listen (no-locale-lock mode)...");
       
-      // Try to find a default locale
-      String? localeId;
-      try {
-        final locales = await _speech.locales();
-        if (locales.any((l) => l.localeId == 'en-US')) {
-          localeId = 'en-US';
-        } else if (locales.isNotEmpty) {
-          localeId = locales.first.localeId;
-        }
-      } catch (_) {}
-
       try {
         await _speech.listen(
           onResult: (result) {
@@ -81,12 +70,11 @@ class VoiceService extends ChangeNotifier {
             if (result.finalResult) {
               _isListening = false;
               _soundLevel = 0.0;
+              notifyListeners();
+              
               if (_lastWords.trim().isNotEmpty) {
                 onResult(_lastWords);
-              } else {
-                debugPrint("VoiceService: Listening ended, but no words were recognized.");
               }
-              notifyListeners();
             } else {
               notifyListeners();
             }
@@ -95,11 +83,10 @@ class VoiceService extends ChangeNotifier {
             _soundLevel = level;
             notifyListeners();
           },
-          localeId: localeId,
           listenFor: const Duration(seconds: 45),
-          pauseFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 5),
           cancelOnError: false,
-          listenMode: ListenMode.dictation,
+          listenMode: ListenMode.confirmation, // Changed to confirmation for better Windows accuracy
         );
       } catch (e) {
         debugPrint("VoiceService Listen Error: $e");

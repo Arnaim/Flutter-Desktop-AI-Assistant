@@ -3,11 +3,85 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../features/chat/provider/chat_provider.dart';
 import '../../../core/services/settings_service.dart';
+import '../../../core/services/persona_service.dart';
 import 'hardware_dashboard.dart';
 import 'glass_container.dart';
 
 class SidebarWidget extends StatelessWidget {
   const SidebarWidget({super.key});
+
+  void _showPersonaDialog(BuildContext context) {
+    final personaService = context.read<PersonaService>();
+    final current = personaService.currentPersona;
+    
+    final nameController = TextEditingController(text: current.name);
+    final toneController = TextEditingController(text: current.tone);
+    final backgroundController = TextEditingController(text: current.background);
+    final quirksController = TextEditingController(text: current.quirks);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900]?.withOpacity(0.95),
+        title: const Text("Persona Editor", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPersonaField("Identity Name", nameController),
+              _buildPersonaField("Behavioral Tone", toneController),
+              _buildPersonaField("Lore Background", backgroundController, maxLines: 3),
+              _buildPersonaField("Unique Quirks", quirksController, maxLines: 2),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              personaService.resetToDefault();
+              Navigator.pop(context);
+            },
+            child: const Text("RESET", style: TextStyle(color: Colors.redAccent)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              personaService.updatePersona(Persona(
+                name: nameController.text.trim(),
+                tone: toneController.text.trim(),
+                background: backgroundController.text.trim(),
+                quirks: quirksController.text.trim(),
+              ));
+              Navigator.pop(context);
+            },
+            child: const Text("APPLY"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonaField(String label, TextEditingController controller, {int maxLines = 1}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          const SizedBox(height: 4),
+          TextField(
+            controller: controller,
+            maxLines: maxLines,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.black26,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showSettingsDialog(BuildContext context) async {
     final settings = SettingsService();
@@ -206,6 +280,14 @@ class SidebarWidget extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          ListTile(
+            onTap: () => _showPersonaDialog(context),
+            leading: Icon(Icons.face_retouching_natural_rounded, size: 20, color: theme.colorScheme.primary),
+            title: Text(
+              "PERSONA",
+              style: TextStyle(color: theme.colorScheme.primary, fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ),
           ListTile(

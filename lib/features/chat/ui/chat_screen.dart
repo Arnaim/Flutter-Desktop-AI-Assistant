@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ineffa_assistant_bot/shared/widgets/chat_bubble.dart';
@@ -13,6 +14,8 @@ import '../provider/chat_provider.dart';
 import '../../../core/services/voice_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/custom_title_bar.dart';
+import 'camera_capture_screen.dart';
+import 'package:camera/camera.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -120,6 +123,10 @@ class _ChatScreenState extends State<ChatScreen> {
     final chat = context.watch<ChatProvider>();
     final voice = context.watch<VoiceService>();
     final theme = Theme.of(context);
+    final isDesktop = !kIsWeb && 
+        (defaultTargetPlatform == TargetPlatform.windows || 
+         defaultTargetPlatform == TargetPlatform.macOS || 
+         defaultTargetPlatform == TargetPlatform.linux);
 
     // Update controller if listening
     if (voice.isListening && voice.lastWords.isNotEmpty) {
@@ -131,7 +138,8 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     return Scaffold(
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
+      drawer: !isDesktop ? const Drawer(child: SidebarWidget()) : null,
       body: Stack(
         children: [
           // 1. Background Layer (Enhanced for Liquid Glass Visibility)
@@ -147,12 +155,14 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
+          
+          // Decorative background elements
           Positioned(
             top: -50,
             right: -50,
             child: Container(
-              width: 500,
-              height: 500,
+              width: isDesktop ? 500 : 300,
+              height: isDesktop ? 500 : 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
@@ -164,67 +174,64 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
-          Positioned(
-            bottom: 100,
-            left: 200,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.tertiary.withOpacity(0.15),
-              ),
-            ),
-          ),
 
           // 2. UI Layer
-          Column(
-            children: [
-              const CustomTitleBar(),
-              Expanded(
-                child: Row(
-                  children: [
-                    const SidebarWidget(),
-                    Expanded(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                          itemCount: chat.messages.length + (chat.isLoading ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (chat.isLoading && index == chat.messages.length) {
-                              return const TypingIndicator();
-                            }
-                            final msg = chat.messages[index];
-                            return ChatBubble(message: msg);
-                          },
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final showSidebar = constraints.maxWidth > 800 && isDesktop;
+              
+              return Column(
+                children: [
+                  CustomTitleBar(showDrawerTrigger: !showSidebar),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if (showSidebar) const SidebarWidget(),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: ListView.builder(
+                                  controller: scrollController,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: 20, 
+                                    horizontal: isDesktop ? 24 : 16
+                                  ),
+                                  itemCount: chat.messages.length + (chat.isLoading ? 1 : 0),
+                                  itemBuilder: (context, index) {
+                                    if (chat.isLoading && index == chat.messages.length) {
+                                      return const TypingIndicator();
+                                    }
+                                    final msg = chat.messages[index];
+                                    return ChatBubble(message: msg);
+                                  },
+                                ),
+                              ),
+                              if (chat.pickedFilePath != null || chat.capturedImageBytes != null) 
+                                _buildFilePreview(chat, isDesktop),
+                              _buildInputArea(chat, voice, isDesktop),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (chat.pickedFilePath != null || chat.capturedImageBytes != null) _buildFilePreview(chat),
-                      _buildInputArea(chat, voice),
-
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                  ],
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilePreview(ChatProvider chat) {
+  Widget _buildFilePreview(ChatProvider chat, bool isDesktop) {
     String label = chat.pickedFilePath != null 
         ? p.basename(chat.pickedFilePath!) 
         : "Screen Capture Active";
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16, vertical: 8),
       alignment: Alignment.centerLeft,
       child: GlassContainer(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -258,28 +265,46 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildInputArea(ChatProvider chat, VoiceService voice) {
+  Widget _buildInputArea(ChatProvider chat, VoiceService voice, bool isDesktop) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 12, 0, isDesktop ? 24 : 12, isDesktop ? 24 : 12),
       child: GlassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         color: Theme.of(context).colorScheme.primary,
         opacity: 0.08,
         blur: 15,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isDesktop ? 16 : 24),
         border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
         child: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.attach_file_rounded, color: AppTheme.secondary),
-              tooltip: "Attach File",
-              onPressed: chat.pickFile,
-            ),
-            IconButton(
-              icon: const Icon(Icons.visibility_rounded, color: AppTheme.secondary),
-              tooltip: "Visual Scan",
-              onPressed: chat.captureScreen,
-            ),
+            if (isDesktop) ...[
+              IconButton(
+                icon: const Icon(Icons.attach_file_rounded, color: AppTheme.secondary),
+                tooltip: "Attach File",
+                onPressed: chat.pickFile,
+              ),
+              IconButton(
+                icon: const Icon(Icons.visibility_rounded, color: AppTheme.secondary),
+                tooltip: "Visual Scan",
+                onPressed: chat.captureScreen,
+              ),
+            ] else 
+              IconButton(
+                icon: const Icon(Icons.camera_alt_rounded, color: AppTheme.secondary),
+                tooltip: "Camera Vision",
+                onPressed: () async {
+                  final XFile? image = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CameraCaptureScreen()),
+                  );
+                  
+                  if (image != null) {
+                    final bytes = await image.readAsBytes();
+                    chat.sendToAI(customPrompt: "Analyze this image.", customImage: bytes);
+                  }
+                },
+              ),
+            
             IconButton(
               icon: Stack(
                 alignment: Alignment.center,
@@ -319,11 +344,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 minLines: 1,
                 style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: voice.isListening ? "Listening..." : "How can Ineffa assist you today, Arnab?",
+                  hintText: voice.isListening ? "Listening..." : "Message Ineffa...",
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   filled: false,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
             ),
